@@ -1,19 +1,43 @@
 
+import { db } from '../db';
+import { usersTable, villagesTable } from '../db/schema';
 import { type CreateUserInput, type User } from '../schema';
+import { eq } from 'drizzle-orm';
 
-export async function createUser(input: CreateUserInput): Promise<User> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is creating a new user account with proper role assignment
-    // Should hash password before storing and validate village assignment for village users
-    return Promise.resolve({
-        id: 1,
+export const createUser = async (input: CreateUserInput): Promise<User> => {
+  try {
+    // Validate village exists if village_id is provided
+    if (input.village_id) {
+      const village = await db.select()
+        .from(villagesTable)
+        .where(eq(villagesTable.id, input.village_id))
+        .execute();
+      
+      if (village.length === 0) {
+        throw new Error('Village not found');
+      }
+    }
+
+    // Hash password (simple hash for demo - in production use bcrypt)
+    const password_hash = await Bun.password.hash(input.password);
+
+    // Insert user record
+    const result = await db.insert(usersTable)
+      .values({
         username: input.username,
-        password_hash: 'hashed_password_placeholder',
+        password_hash,
         full_name: input.full_name,
         role: input.role,
         village_id: input.village_id || null,
-        is_active: true,
-        created_at: new Date(),
-        updated_at: new Date()
-    } as User);
-}
+        is_active: true
+      })
+      .returning()
+      .execute();
+
+    const user = result[0];
+    return user;
+  } catch (error) {
+    console.error('User creation failed:', error);
+    throw error;
+  }
+};

@@ -1,8 +1,19 @@
 
+import { db } from '../db';
+import { villagesTable } from '../db/schema';
 import { type Village } from '../schema';
+import { asc } from 'drizzle-orm';
 
-export async function getVillages(): Promise<Village[]> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching all villages for dropdown/selection purposes
-    return [];
-}
+export const getVillages = async (): Promise<Village[]> => {
+  try {
+    const results = await db.select()
+      .from(villagesTable)
+      .orderBy(asc(villagesTable.name))
+      .execute();
+
+    return results;
+  } catch (error) {
+    console.error('Failed to fetch villages:', error);
+    throw error;
+  }
+};
